@@ -1,0 +1,23 @@
+{
+    "files.associations": {
+        "socket.h": "c",
+        "operator.h": "c",
+        "pthread.h": "c",
+        "memory.h": "c",
+        "interpreter.h": "c",
+        "types.h": "c",
+        "in.h": "c",
+        "inet.h": "c",
+        "data.h": "c",
+        "string.h": "c",
+        "status.h": "c",
+        "select.h": "c",
+        "control.h": "c",
+        "utils.h": "c",
+        "ftputils.h": "c",
+        "unistd.h": "c",
+        "ioctl.h": "c",
+        "if.h": "c",
+        "stdlib.h": "c"
+    }
+}
