@@ -27,4 +27,6 @@ int retr(char *arg, int client_fd);
 
 int stor(char *arg, int client_fd);
 
+int quit(char *arg, int client_fd);
+
 #endif

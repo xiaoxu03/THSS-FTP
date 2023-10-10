@@ -211,7 +211,7 @@ int interpret(int client_fd){
                     send_msg(msg, client_fd, strlen(msg));
                 }
                 else if(output == -3){
-                    strcpy(msg, "245 Unable to Connect!\r\n");
+                    strcpy(msg, "425 Unable to Connect!\r\n");
                     send_msg(msg, client_fd, strlen(msg));
                 }
                 else{
@@ -230,12 +230,23 @@ int interpret(int client_fd){
                     send_msg(msg, client_fd, strlen(msg));
                 }
                 else if(output == -3){
-                    strcpy(msg, "245 Unable to Connect!\r\n");
+                    strcpy(msg, "425 Unable to Connect!\r\n");
                     send_msg(msg, client_fd, strlen(msg));
                 }
                 else{
                     strcpy(msg, "226 Transfer complete.\r\n");
                     send_msg(msg, client_fd, strlen(msg));
+                }
+                break;
+            case QUIT:
+                if(quit(in_buf, client_fd)){
+                    strcpy(msg, "500 You can only send command in the list quit!\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                else{
+                    strcpy(msg, "221 Service closing control connection.\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                    close(client_fd);
                 }
                 break;
             default:

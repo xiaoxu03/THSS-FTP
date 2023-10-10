@@ -218,11 +218,110 @@ int retr(char *arg, int client_fd){
 
     fclose(file);
     close(client_datafd[client_fd]);
-    client_datafd[client_fd] = -1;
+    client_datafd[client_fd] = 0;
     return 0;
 }
 
 int stor(char *arg, int client_fd){
+    if(strlen(arg) < 6){
+        return -1;
+    }
+
+    char * filename = arg + 5;
+
+    FILE* file;
+    char buffer[MAX_BUF];
+    ssize_t bytes_read;
+
+    int data_fd;
+
+    if(client_addr[client_fd].sin_addr.s_addr || client_addr[client_fd].sin_port){
+        // 创建数据传输的套接字
+        data_fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (data_fd == -1) {
+            perror("Error creating data socket");
+            return -1;
+        }
+
+        // 连接到客户端指定的IP地址和端口号
+        if (connect(data_fd, (struct sockaddr*)&client_addr[client_fd], sizeof(client_addr[client_fd])) == -1) {
+            perror("Error connecting to client");
+            return -3;
+        }
+
+        client_datafd[client_fd] = data_fd;
+        memset(&client_addr[client_fd], 0, sizeof(client_addr[client_fd]));
+    }
+    else if(client_datafd[client_fd]){
+        // PASV accept
+        int pasv_datafd = accept(client_datafd[client_fd], NULL, NULL);
+        if(pasv_datafd == -1){
+            perror("Error connecting to client");
+            return -4;
+        }
+        
+        client_datafd[client_fd] = pasv_datafd;
+    }
+
+    // 接收到RETR指令后，解析出要下载的文件路径
+    char filedir[MAX_BUF];
+
+    strcpy(filedir, dir);
+    strcat(filedir, "/");
+    strcat(filedir, filename);
+
+    // 创建要上传的文件
+    file = fopen(filedir, "w+");
+    if (file == NULL) {
+        perror("Error opening file");
+        return -2;
+    }
+    char mode[10];
+
+    if(client_type[client_fd] == BINARY){
+        strcpy(mode, "BINARY");
+    }
+    else{
+        strcpy(mode, "ASCII");
+    }
+
+    fseek(file, 0, SEEK_END);
+
+    char message[MAX_BUF];
+    char size[1024];
+    sprintf(size, "%ld", ftell(file));
+    sprintf(message, "150 Opening %s mode data connection for %s.\r\n", mode, filename);
+    send_msg(message, client_fd, -1);
+
+
+    int recv_flag;
+    // 使用数据连接向客户端发送文件数据
+    while((recv_flag = recv(client_datafd[client_fd], buffer, MAX_BUF, 0)) > 0){
+        int bytes_write = fwrite(buffer, sizeof(char), recv_flag, file);
+    }
+
+    if(recv_flag == -1){
+        return -3;
+    }
+
+    fclose(file);
+    close(client_datafd[client_fd]);
+    client_datafd[client_fd] = 0;
+    return 0;
+}
+
+int quit(char *arg, int client_fd){
+    if(strlen(arg) != 4){
+        return -1;
+    }
+
+    FD_CLR(client_fd, &client_fds);
+    
+
+    client_status[client_fd] = DISCONNECTED;
+    client_type[client_fd] = ASCII;
+    client_datafd[client_fd] = 0;
+    memset(&client_addr[client_fd], 0, sizeof (client_addr[client_fd]));
 
     return 0;
 }
