@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <stdlib.h>
+#include <dirent.h>
 
 #include "data.h"
 #include "status.h"
@@ -28,5 +29,17 @@ int retr(char *arg, int client_fd);
 int stor(char *arg, int client_fd);
 
 int quit(char *arg, int client_fd);
+
+int cwd(char *arg, int client_fd);
+
+int mkd(char *arg, int client_fd);
+
+int list(char *arg, int client_fd);
+
+int rmd(char *arg, int client_fd);
+
+int rnfr(char *arg, int client_fd);
+
+int rnto(char *arg, int client_fd);
 
 #endif

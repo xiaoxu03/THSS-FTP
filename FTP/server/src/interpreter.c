@@ -249,6 +249,45 @@ int interpret(int client_fd){
                     close(client_fd);
                 }
                 break;
+            case CWD:
+                int opt = cwd(in_buf, client_fd);
+                if(opt == -1 || opt == -2){
+                    strcpy(msg, "504 Invalid input!\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                else{
+                    strcpy(msg, "250 Directory successfully changed.\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+            case PWD:
+                if (strlen(in_buf) != 3)
+                {
+                    strcpy(msg, "504 Invalid input!\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                else
+                {
+                    strcpy(msg, "257 \"");
+                    strcat(msg, dir);
+                    // 如果不是以'/'结尾的话，加上'/'
+                    if (dir[strlen(dir) - 1] != '/')
+                        strcat(msg, "/");
+                    strcat(msg, "\"\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                break;
+            case MKD:
+                int opt = mkd(in_buf, client_fd);
+                if (opt == -1 || opt == -2)
+                {
+                    strcpy(msg, "504 Invalid input!\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                else
+                {
+                    strcpy(msg, "250 Make directory successfully.\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
             default:
                 strcpy(msg, "500 You can only send command in the list!\r\n");
                 send_msg(msg, client_fd, strlen(msg));

@@ -325,3 +325,98 @@ int quit(char *arg, int client_fd){
 
     return 0;
 }
+
+int cwd(char *arg, int client_fd){
+    if(strlen(arg) < 4){
+        return -1;
+    }
+
+    char * dirname = arg + 4;
+    DIR *opened_dir;
+    struct dirent *ptr;
+
+    char newdir[MAX_BUF];
+
+    int opt = connect_dir(dir, dirname, newdir);
+
+    if (opt == -1) {
+        // 路径过长
+        return -1;
+    }
+
+    
+    if((opened_dir = opendir(newdir)) == NULL){
+        // 路径不存在
+        return -2;
+    }
+
+    
+    strcpy(dir, newdir);
+    closedir(opened_dir);
+
+    return 0;
+}
+
+
+int mkd(char *arg, int client_fd){
+    if(strlen(arg) < 4){
+        return -1;
+    }
+
+    char * dirname = arg + 4;
+    char newdir[MAX_BUF];
+
+    int opt = connect_dir(dir, dirname, newdir);
+
+    if (opt == -1) {
+        // 路径过长
+        return -1;
+    }
+
+    // 创建新目录
+    if (mkdir(newdir, 0777) == -1) {
+        // 创建目录失败
+        return -2;
+    }
+
+    return 0;
+}
+
+int list(char *arg, int client_fd){
+    char message[MAX_BUF];
+    sprintf(message, "150 Opening ASCII mode data connection for file list.\r\n");
+    send_msg(message, client_fd, -1);
+
+    // 打开当前目录
+    DIR *opened_dir;
+    if((opened_dir = opendir(dir)) == NULL){
+        // 路径不存在
+        return -1;
+    }
+
+    // 遍历目录
+    struct dirent *ptr;
+    while((ptr = readdir(opened_dir)) != NULL){
+        // 忽略 . 和 ..
+        if(strcmp(ptr->d_name, ".") == 0 || strcmp(ptr->d_name, "..") == 0){
+            continue;
+        }
+
+        // 发送文件名
+        sprintf(message, "%s\r\n", ptr->d_name);
+        send_msg(message, client_datafd[client_fd], -1);
+    }
+
+    // 关闭目录
+    closedir(opened_dir);
+
+    // 关闭数据连接
+    close(client_datafd[client_fd]);
+    client_datafd[client_fd] = 0;
+
+    // 发送完成消息
+    sprintf(message, "226 Transfer complete.\r\n");
+    send_msg(message, client_fd, -1);
+
+    return 0;
+}

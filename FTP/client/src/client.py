@@ -1,23 +1,44 @@
 import socket
 
-# 定义服务器地址和端口
-server_address = ('127.0.0.1', 21)
+HOST = 'ftp.server.com'
+PORT = 21
 
-# 创建套接字并连接到服务器
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
-sock.connect(server_address)
+# Connect to the FTP server
+ftp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+ftp_socket.connect((HOST, PORT))
 
-# 接收响应
-response = sock.recv(1024)  # 一次最多接收1024字节的数据
-print("SERVER: " + response.decode())  # 打印响应消息（将字节串解码为字符串）
+# Receive the welcome message from the server
+response = ftp_socket.recv(1024)
+print(response.decode())
 
-i = 0
-while(i < 3):
-    # 发送消息
-    message = input("CLIENT: ").encode()  # 将消息转换为字节串
-    sock.sendall(message)
-    i += 1
+# Send the username and password
+ftp_socket.sendall(b'USER anonymous\r\n')
+response = ftp_socket.recv(1024)
+print(response.decode())
 
+ftp_socket.sendall(b'PASS chao@chao.chao\r\n')
+response = ftp_socket.recv(1024)
+print(response.decode())
 
-# 关闭套接字连接
-sock.close()
+# Change to the desired directory
+ftp_socket.sendall(b'CWD /path/to/directory\r\n')
+response = ftp_socket.recv(1024)
+print(response.decode())
+
+# Download a file
+ftp_socket.sendall(b'RETR filename.txt\r\n')
+response = ftp_socket.recv(1024)
+print(response.decode())
+
+with open('filename.txt', 'wb') as f:
+    while True:
+        data = ftp_socket.recv(1024)
+        if not data:
+            break
+        f.write(data)
+
+# Close the connection
+ftp_socket.sendall(b'QUIT\r\n')
+response = ftp_socket.recv(1024)
+print(response.decode())
+ftp_socket.close()
