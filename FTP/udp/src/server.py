@@ -10,8 +10,8 @@ sock.bind(('', 9876))
 try:
   while True:
     data, address = sock.recvfrom(size)
-    sequence += 1
     echo = str(sequence) + ' ' + data.decode()
+    sequence += 1
     sock.sendto(echo.encode(), address)
 
 finally:

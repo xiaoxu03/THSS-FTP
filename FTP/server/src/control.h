@@ -9,10 +9,11 @@
 #include <netdb.h>
 #include <stdlib.h>
 #include <dirent.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "data.h"
 #include "status.h"
-
 
 int user(char *arg, int client_fd);
 

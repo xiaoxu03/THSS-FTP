@@ -240,7 +240,7 @@ int interpret(int client_fd){
                 break;
             case QUIT:
                 if(quit(in_buf, client_fd)){
-                    strcpy(msg, "500 You can only send command in the list quit!\r\n");
+                    strcpy(msg, "500 You can only send command in the list!\r\n");
                     send_msg(msg, client_fd, strlen(msg));
                 }
                 else{
@@ -250,8 +250,8 @@ int interpret(int client_fd){
                 }
                 break;
             case CWD:
-                int opt = cwd(in_buf, client_fd);
-                if(opt == -1 || opt == -2){
+                output = cwd(in_buf, client_fd);
+                if(output == -1 || output == -2){
                     strcpy(msg, "504 Invalid input!\r\n");
                     send_msg(msg, client_fd, strlen(msg));
                 }
@@ -259,6 +259,7 @@ int interpret(int client_fd){
                     strcpy(msg, "250 Directory successfully changed.\r\n");
                     send_msg(msg, client_fd, strlen(msg));
                 }
+                break;
             case PWD:
                 if (strlen(in_buf) != 3)
                 {
@@ -277,8 +278,8 @@ int interpret(int client_fd){
                 }
                 break;
             case MKD:
-                int opt = mkd(in_buf, client_fd);
-                if (opt == -1 || opt == -2)
+                output = mkd(in_buf, client_fd);
+                if (output == -1 || output == -2)
                 {
                     strcpy(msg, "504 Invalid input!\r\n");
                     send_msg(msg, client_fd, strlen(msg));
@@ -288,6 +289,14 @@ int interpret(int client_fd){
                     strcpy(msg, "250 Make directory successfully.\r\n");
                     send_msg(msg, client_fd, strlen(msg));
                 }
+                break;
+            case LIST:
+                output = list(in_buf, client_fd);
+                if (output == -1){
+                    strcpy(msg, "550 Directory not found!\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                break;
             default:
                 strcpy(msg, "500 You can only send command in the list!\r\n");
                 send_msg(msg, client_fd, strlen(msg));

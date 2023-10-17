@@ -13,20 +13,18 @@ int user(char *arg, int client_fd)
 
 int pass(char *arg, int client_fd)
 {
-    int status = 0, i;
-    int cflags = REG_EXTENDED;
-    regmatch_t pmatch[1];
-    const size_t nmatch = 1;
-    regex_t reg;
-    const char *pattern = "^\\w+([-+.]\\w+)*@([-.]\\w+)*$";
-    regcomp(&reg, pattern, cflags);         // 编译正则模式
-    status = regexec(&reg, arg + 5, nmatch, pmatch, 0); // 执行正则表达式和缓存的比较
+    char* str = arg + 5;
 
-    regfree(&reg);
+    int len = strlen(str);
 
-    if (status == REG_NOMATCH)
-    {
-        return 1;
+    // 找到 '@' 和 '.'
+    for (int i = 0; i < len; i++) {
+        if (str[i] == '@' && i != 0) {
+            break;
+        }
+        if (i == len - 1) {
+            return 1;
+        }
     }
 
     client_status[client_fd] = AVAILAVLE;
@@ -311,7 +309,7 @@ int stor(char *arg, int client_fd){
 }
 
 int quit(char *arg, int client_fd){
-    if(strlen(arg) != 4){
+    if(strcmp(arg, "QUIT") != 0){
         return -1;
     }
 
@@ -404,7 +402,7 @@ int list(char *arg, int client_fd){
 
         // 发送文件名
         sprintf(message, "%s\r\n", ptr->d_name);
-        send_msg(message, client_datafd[client_fd], -1);
+        send_msg(message, client_fd, -1);
     }
 
     // 关闭目录
@@ -421,15 +419,39 @@ int list(char *arg, int client_fd){
     return 0;
 }
 
+int rmd(char *arg, int client_fd){
+    if(strlen(arg) < 4){
+        return -1;
+    }
+
+    char * dirname = arg + 4;
+    char newdir[MAX_BUF];
+
+    int opt = connect_dir(dir, dirname, newdir);
+
+    if (opt == -1) {
+        // 路径过长
+        return -1;
+    }
+
+    // 删除目录
+    if (rmdir(newdir) == -1) {
+        // 删除目录失败
+        return -2;
+    }
+
+    return 0;
+}
+
 int rnfr(char *arg, int client_fd){
     if(strlen(arg) < 5){
         return -1;
     }
 
     char * filename = arg + 5;
-    char filepath[MAX_BUF];
+    char newdir[MAX_BUF];
 
-    int opt = connect_dir(dir, filename, filepath);
+    int opt = connect_dir(dir, filename, newdir);
 
     if (opt == -1) {
         // 路径过长
@@ -437,13 +459,36 @@ int rnfr(char *arg, int client_fd){
     }
 
     // 检查文件是否存在
-    if (access(filepath, F_OK) == -1) {
+    if (access(newdir, F_OK) == -1) {
         // 文件不存在
         return -2;
     }
 
-    // 保存文件路径
-    strcpy(rnfr_path, filepath);
+    strcpy(out_buf, newdir);
+
+    return 0;
+}
+
+int rnto(char *arg, int client_fd){
+    if(strlen(arg) < 5){
+        return -1;
+    }
+
+    char * filename = arg + 5;
+    char newdir[MAX_BUF];
+
+    int opt = connect_dir(dir, filename, newdir);
+
+    if (opt == -1) {
+        // 路径过长
+        return -1;
+    }
+
+    // 重命名文件
+    if (rename(out_buf, newdir) == -1) {
+        // 重命名失败
+        return -2;
+    }
 
     return 0;
 }
