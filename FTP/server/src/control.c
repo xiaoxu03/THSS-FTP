@@ -420,3 +420,30 @@ int list(char *arg, int client_fd){
 
     return 0;
 }
+
+int rnfr(char *arg, int client_fd){
+    if(strlen(arg) < 5){
+        return -1;
+    }
+
+    char * filename = arg + 5;
+    char filepath[MAX_BUF];
+
+    int opt = connect_dir(dir, filename, filepath);
+
+    if (opt == -1) {
+        // 路径过长
+        return -1;
+    }
+
+    // 检查文件是否存在
+    if (access(filepath, F_OK) == -1) {
+        // 文件不存在
+        return -2;
+    }
+
+    // 保存文件路径
+    strcpy(rnfr_path, filepath);
+
+    return 0;
+}
