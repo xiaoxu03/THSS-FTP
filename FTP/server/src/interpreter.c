@@ -84,7 +84,7 @@ int interpret(int client_fd){
     char *command = strtok(in_cpy, " ");
     int cmd = interpret_comand(command);
     char msg[MAX_BUF];
-    switch (client_status[client_fd])
+    switch (clients[client_fd].status)
     {
     case DISCONNECTED:
         printf("There is something wrong with server!\n");

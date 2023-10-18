@@ -72,16 +72,16 @@ def test(port=21, directory='../../server/src/tmp'):
     ftp2 = FTP()
     ftp2.connect('127.0.0.1', port)
     ftp2.login()
-    # filename = 'test%d.data' % random.randint(100, 200)
-    # create_test_file(filename)
-    # if not ftp2.storbinary('STOR %s' % filename, open(filename, 'rb')).startswith('226'):
-    #   print('Bad response for STOR')
-    #   credit -= minor
-    # if not filecmp.cmp(filename, directory + '/' + filename):
-    #   print('Something wrong with STOR')
-    #   credit -= major
-    # os.remove(directory + '/' + filename)
-    # os.remove(filename)
+    filename = 'test%d.data' % random.randint(100, 200)
+    create_test_file(filename)
+    if not ftp2.storbinary('STOR %s' % filename, open(filename, 'rb')).startswith('226'):
+      print('Bad response for STOR')
+      credit -= minor
+    if not filecmp.cmp(filename, directory + '/' + filename):
+      print('Something wrong with STOR')
+      credit -= major
+    os.remove(directory + '/' + filename)
+    os.remove(filename)
     # QUIT
     if not ftp.quit().startswith('221'):
       print('Bad response for QUIT')

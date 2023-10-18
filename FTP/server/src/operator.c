@@ -3,12 +3,8 @@
 
 fd_set client_fds;
 int max_fd;
-int client_status[MAX_CLIENT];
-int client_type[MAX_CLIENT];
-int client_datafd[MAX_CLIENT];
-struct sockaddr_in client_addr[MAX_CLIENT];
-int client_mode[MAX_CLIENT];
 int client_cnt = 0;
+Client clients[MAX_CLIENT];
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -48,9 +44,7 @@ int control_init(in_port_t _port){
 	char welcome_sentence[] = "220 XCs FTP server ready.\r\n";
     int len = strlen(welcome_sentence);
 
-	memset(client_status, DISCONNECTED, sizeof(int) * MAX_CLIENT);
-	memset(client_status, ASCII, sizeof(int) * MAX_CLIENT);
-	memset(client_addr, 0, sizeof(struct sockaddr_in) * MAX_CLIENT);
+	memset(clients, 0, sizeof(clients));
 	FD_ZERO(&client_fds);
 	
     FD_SET(listenfd, &client_fds);
@@ -75,6 +69,7 @@ int control_init(in_port_t _port){
 			if (FD_ISSET(eventfd, &temp_fds) <= 0){
 				continue;
 			}
+			// 连接请求
 			else if (eventfd == listenfd){
 				// Create a new connection
 				int p = 0;
@@ -84,8 +79,7 @@ int control_init(in_port_t _port){
 					return -1;
 				}
 
-				client_status[connfd] = CONNECTED;
-				client_datafd[connfd] = 0;
+				clients[connfd].status = CONNECTED;
 				FD_SET(connfd, &client_fds);
 				if (connfd > max_fd) {
 					max_fd = connfd;
@@ -104,11 +98,9 @@ int control_init(in_port_t _port){
 				}
 
 				client_cnt ++;
-				pthread_mutex_lock(&mutex);
-				printf("Client %d connected!\n", client_cnt);
-				pthread_mutex_unlock(&mutex);
 			}
-			else{
+			// 客户端请求
+			else if(clients[eventfd].status){
 				ssize_t isize = read(eventfd, in_buf, MAX_BUF);
 
 				if (isize <= 0)
@@ -118,10 +110,7 @@ int control_init(in_port_t _port){
 					close(eventfd);
 					FD_CLR(eventfd, &client_fds);
 
-					client_status[eventfd] = DISCONNECTED;
-					client_type[eventfd] = ASCII;
-					client_datafd[eventfd] = 0;
-					memset(&client_addr[eventfd], 0, sizeof (client_addr[eventfd]));
+					memset(&clients[eventfd], 0, sizeof(clients[eventfd]));
 
 					// Refind the largest fd in fd set
 					if (eventfd == max_fd){
@@ -145,6 +134,10 @@ int control_init(in_port_t _port){
 					printf("%s\n", in_buf);
 					interpret(eventfd);
 				}
+			}
+			// 文件传输请求
+			else{
+				//TODO: 文件传输线程监听
 			}
 		}
 	}
