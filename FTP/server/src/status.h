@@ -12,5 +12,10 @@
 #define ASCII               0
 #define BINARY              1
 
+// PASV/PORT宏定义
+#define NONE_MODE           0
+#define PASV_MODE           1
+#define PORT_MODE           2
+
 
 #endif

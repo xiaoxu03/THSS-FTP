@@ -7,6 +7,7 @@ int client_status[MAX_CLIENT];
 int client_type[MAX_CLIENT];
 int client_datafd[MAX_CLIENT];
 struct sockaddr_in client_addr[MAX_CLIENT];
+int client_mode[MAX_CLIENT];
 int client_cnt = 0;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;

@@ -246,7 +246,6 @@ int interpret(int client_fd){
                 else{
                     strcpy(msg, "221 Service closing control connection.\r\n");
                     send_msg(msg, client_fd, strlen(msg));
-                    close(client_fd);
                 }
                 break;
             case CWD:

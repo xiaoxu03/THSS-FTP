@@ -74,6 +74,7 @@ int port(char *arg, int client_fd){
     inet_pton(AF_INET, ipAddress, &(client_addr[client_fd].sin_addr));
 
     // 数据传输通道建立成功，可以进行数据传输
+    client_mode[client_fd] = PORT_MODE;
     return 0;
 }
 
@@ -97,23 +98,15 @@ int pasv(char *arg, int client_fd){
     memset(&data_addr, 0, sizeof(data_addr));
     data_addr.sin_family = AF_INET;
     data_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    data_addr.sin_port = htons(20);
 
     if (bind(data_socket, (struct sockaddr*)&data_addr, sizeof(data_addr)) == -1) {
         perror("Error binding data socket");
         return -2;
     }
 
-    // 将数据传输套接字设置为监听模式
-    if (listen(data_socket, 1) == -1) {
-        perror("Error listening on data socket");
-        return -2;
-    }
-
-    // 获取数据传输套接字绑定的端口号
-    if (getsockname(data_socket, (struct sockaddr*)&data_addr, &data_addr_len) == -1) {
-        perror("Error getting data socket address");
-        return -2;
-    }    
+    // 将数据传输套接字存储起来
+    client_datafd[client_fd] = data_socket;
 
     // Change IP format
     char* ip_address = inet_ntoa(data_addr.sin_addr);
@@ -124,12 +117,10 @@ int pasv(char *arg, int client_fd){
         }
         temp ++;
     }
-    
+    client_mode[client_fd] = PASV_MODE;
     in_port_t _port = ntohs(data_addr.sin_port);
     snprintf(out_buf, sizeof(out_buf), "227 Entering Passive Mode (%s,%u,%u).\r\n",
         ip_address, _port >> 8, _port & 0xFF);
-
-    client_datafd[client_fd] = data_socket;
 
     return 0;
 }
@@ -147,7 +138,7 @@ int retr(char *arg, int client_fd){
 
     int data_fd;
 
-    if(client_addr[client_fd].sin_addr.s_addr || client_addr[client_fd].sin_port){
+    if(client_mode[client_fd] == PORT_MODE){
         // 创建数据传输的套接字
         data_fd = socket(AF_INET, SOCK_STREAM, 0);
         if (data_fd == -1) {
@@ -164,7 +155,12 @@ int retr(char *arg, int client_fd){
         client_datafd[client_fd] = data_fd;
         memset(&client_addr[client_fd], 0, sizeof(client_addr[client_fd]));
     }
-    else if(client_datafd[client_fd]){
+    else if(client_mode[client_fd] == PASV_MODE){
+        // 将数据传输套接字设置为监听模式
+        if (listen(client_datafd[client_fd], 1) == -1) {
+            perror("Error listening on data socket");
+            return -2;
+        }
         // PASV accept
         int pasv_datafd = accept(client_datafd[client_fd], NULL, NULL);
         if(pasv_datafd == -1){
@@ -174,12 +170,16 @@ int retr(char *arg, int client_fd){
         
         client_datafd[client_fd] = pasv_datafd;
     }
+    else{
+        return -5;
+    }
 
     // 接收到RETR指令后，解析出要下载的文件路径
     char filedir[MAX_BUF];
 
     strcpy(filedir, dir);
-    strcat(filedir, "/");
+    if(dir[strlen(dir) - 1] != '/')
+        strcat(filedir, "/");
     strcat(filedir, filename);
 
     // 打开要下载的文件
@@ -217,6 +217,8 @@ int retr(char *arg, int client_fd){
     fclose(file);
     close(client_datafd[client_fd]);
     client_datafd[client_fd] = 0;
+    client_mode[client_fd] = NONE_MODE;
+
     return 0;
 }
 
@@ -231,10 +233,9 @@ int stor(char *arg, int client_fd){
     char buffer[MAX_BUF];
     ssize_t bytes_read;
 
-    int data_fd;
-
-    if(client_addr[client_fd].sin_addr.s_addr || client_addr[client_fd].sin_port){
+    if(client_mode[client_fd] == PORT_MODE){
         // 创建数据传输的套接字
+        int data_fd;
         data_fd = socket(AF_INET, SOCK_STREAM, 0);
         if (data_fd == -1) {
             perror("Error creating data socket");
@@ -250,7 +251,12 @@ int stor(char *arg, int client_fd){
         client_datafd[client_fd] = data_fd;
         memset(&client_addr[client_fd], 0, sizeof(client_addr[client_fd]));
     }
-    else if(client_datafd[client_fd]){
+    else if(client_mode[client_fd] == PASV_MODE){
+        // 将数据传输套接字设置为监听模式
+        if (listen(client_datafd[client_fd], 1) == -1) {
+            perror("Error listening on data socket");
+            return -2;
+        }
         // PASV accept
         int pasv_datafd = accept(client_datafd[client_fd], NULL, NULL);
         if(pasv_datafd == -1){
@@ -259,6 +265,9 @@ int stor(char *arg, int client_fd){
         }
         
         client_datafd[client_fd] = pasv_datafd;
+    }
+    else{
+        return -5;
     }
 
     // 接收到RETR指令后，解析出要下载的文件路径
@@ -305,20 +314,22 @@ int stor(char *arg, int client_fd){
     fclose(file);
     close(client_datafd[client_fd]);
     client_datafd[client_fd] = 0;
+    client_mode[client_fd] = NONE_MODE;
+
     return 0;
 }
 
 int quit(char *arg, int client_fd){
-    if(strcmp(arg, "QUIT") != 0){
+    if(strlen(arg) > 4){
         return -1;
     }
 
     FD_CLR(client_fd, &client_fds);
-    
 
     client_status[client_fd] = DISCONNECTED;
     client_type[client_fd] = ASCII;
     client_datafd[client_fd] = 0;
+    client_mode[client_fd] = NONE_MODE;
     memset(&client_addr[client_fd], 0, sizeof (client_addr[client_fd]));
 
     return 0;
@@ -392,6 +403,44 @@ int list(char *arg, int client_fd){
         return -1;
     }
 
+    // 使用数据连接向客户端发送文件数据
+    if(client_mode[client_fd] == PORT_MODE){
+        // 创建数据传输的套接字
+        int data_fd;
+        data_fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (data_fd == -1) {
+            perror("Error creating data socket");
+            return -1;
+        }
+
+        // 连接到客户端指定的IP地址和端口号
+        if (connect(data_fd, (struct sockaddr*)&client_addr[client_fd], sizeof(client_addr[client_fd])) == -1) {
+            perror("Error connecting to client");
+            return -3;
+        }
+
+        client_datafd[client_fd] = data_fd;
+        memset(&client_addr[client_fd], 0, sizeof(client_addr[client_fd]));
+    }
+    else if(client_mode[client_fd] == PASV_MODE){
+        // 将数据传输套接字设置为监听模式
+        if (listen(client_datafd[client_fd], 1) == -1) {
+            perror("Error listening on data socket");
+            return -2;
+        }
+        // PASV accept
+        int pasv_datafd = accept(client_datafd[client_fd], NULL, NULL);
+        if(pasv_datafd == -1){
+            perror("Error connecting to client");
+            return -4;
+        }
+        
+        client_datafd[client_fd] = pasv_datafd;
+    }
+    else{
+        return -5;
+    }
+
     // 遍历目录
     struct dirent *ptr;
     while((ptr = readdir(opened_dir)) != NULL){
@@ -399,10 +448,10 @@ int list(char *arg, int client_fd){
         if(strcmp(ptr->d_name, ".") == 0 || strcmp(ptr->d_name, "..") == 0){
             continue;
         }
-
+    
         // 发送文件名
         sprintf(message, "%s\r\n", ptr->d_name);
-        send_msg(message, client_fd, -1);
+        send_msg(message, client_datafd[client_fd], -1);
     }
 
     // 关闭目录
@@ -411,6 +460,7 @@ int list(char *arg, int client_fd){
     // 关闭数据连接
     close(client_datafd[client_fd]);
     client_datafd[client_fd] = 0;
+    client_mode[client_fd] = NONE_MODE;
 
     // 发送完成消息
     sprintf(message, "226 Transfer complete.\r\n");
