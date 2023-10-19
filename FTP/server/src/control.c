@@ -184,8 +184,8 @@ int retr(char *arg, int client_fd){
     // 接收到RETR指令后，解析出要下载的文件路径
     char filedir[MAX_BUF];
 
-    strcpy(filedir, dir);
-    if(dir[strlen(dir) - 1] != '/')
+    strcpy(filedir, clients[client_fd].dir);
+    if(clients[client_fd].dir[strlen(clients[client_fd].dir) - 1] != '/')
         strcat(filedir, "/");
     strcat(filedir, filename);
 
@@ -273,8 +273,8 @@ int stor(char *arg, int client_fd){
     // 接收到RETR指令后，解析出要下载的文件路径
     char filedir[MAX_BUF];
 
-    strcpy(filedir, dir);
-    if(dir[strlen(dir) - 1] != '/')
+    strcpy(filedir, clients[client_fd].dir);
+    if(clients[client_fd].dir[strlen(clients[client_fd].dir) - 1] != '/')
         strcat(filedir, "/");
     strcat(filedir, filename);
 
@@ -339,7 +339,7 @@ int cwd(char *arg, int client_fd){
 
     char newdir[MAX_BUF];
 
-    int opt = connect_dir(dir, dirname, newdir);
+    int opt = connect_dir(clients[client_fd].dir, dirname, newdir);
 
     if (opt == -1) {
         // 路径过长
@@ -353,7 +353,7 @@ int cwd(char *arg, int client_fd){
     }
 
     
-    strcpy(dir, newdir);
+    strcpy(clients[client_fd].dir, newdir);
     closedir(opened_dir);
 
     return 0;
@@ -368,7 +368,7 @@ int mkd(char *arg, int client_fd){
     char * dirname = arg + 4;
     char newdir[MAX_BUF];
 
-    int opt = connect_dir(dir, dirname, newdir);
+    int opt = connect_dir(clients[client_fd].dir, dirname, newdir);
 
     if (opt == -1) {
         // 路径过长
@@ -389,9 +389,45 @@ int list(char *arg, int client_fd){
     sprintf(message, "150 Opening ASCII mode data connection for file list.\r\n");
     send_msg(message, client_fd, -1);
 
-    // 打开当前目录
+    int max_size_len = 0;
+    // 遍历目录
+    struct dirent *ptr;
     DIR *opened_dir;
-    if((opened_dir = opendir(dir)) == NULL){
+    if((opened_dir = opendir(clients[client_fd].dir)) == NULL){
+        // 路径不存在
+        return -1;
+    }
+    while(ptr = readdir(opened_dir)){
+        // 忽略 . 和 ..
+        if(strcmp(ptr->d_name, ".") == 0 || strcmp(ptr->d_name, "..") == 0 ){
+            continue;
+        }
+
+        // 获取文件信息
+        char file_dir[256];
+        file_dir[0] = '\0';
+        strcat(file_dir, clients[client_fd].dir);
+        if (clients[client_fd].dir[strlen(clients[client_fd].dir) - 1] != '/') {
+            strcat(file_dir, "/");
+        }
+        strcat(file_dir, ptr->d_name);
+        struct stat file_stat;
+        if (stat(file_dir, &file_stat) == -1) {
+            printf("Load failed!\n");
+            continue;
+        }
+
+        int file_size = file_stat.st_size;
+        if(file_size > max_size_len){
+            max_size_len = file_size;
+        }
+    }
+    char size[1024];
+    max_size_len = snprintf(size, sizeof(size), "%d", max_size_len);
+    closedir(opened_dir);
+
+    // 打开当前目录
+    if((opened_dir = opendir(clients[client_fd].dir)) == NULL){
         // 路径不存在
         return -1;
     }
@@ -428,16 +464,32 @@ int list(char *arg, int client_fd){
     }
 
     // 遍历目录
-    struct dirent *ptr;
     while((ptr = readdir(opened_dir)) != NULL){
         // 忽略 . 和 ..
-        if(strcmp(ptr->d_name, ".") == 0 || strcmp(ptr->d_name, "..") == 0){
+        if(strcmp(ptr->d_name, ".") == 0 || strcmp(ptr->d_name, "..") == 0 ){
             continue;
         }
     
-        // 发送文件名
-        sprintf(message, "%s\r\n", ptr->d_name);
-        send_msg(message, clients[client_fd].data_fd, -1);
+        // 获取文件信息
+        char file_info[256];
+        char file_dir[256];
+        file_dir[0] = '\0';
+        strcat(file_dir, clients[client_fd].dir);
+        if (clients[client_fd].dir[strlen(clients[client_fd].dir) - 1] != '/') {
+            strcat(file_dir, "/");
+        }
+        strcat(file_dir, ptr->d_name);
+        
+    
+        if (!format_file_info(file_info, file_dir, max_size_len)) {
+            printf("Load failed!\n");
+            continue;
+        }
+        strcat(file_info, " ");
+        strcat(file_info, ptr->d_name);
+        strcat(file_info, "\r\n");
+
+        send_msg(file_info, clients[client_fd].data_fd, -1);
     }
 
     // 关闭目录
@@ -463,7 +515,7 @@ int rmd(char *arg, int client_fd){
     char * dirname = arg + 4;
     char newdir[MAX_BUF];
 
-    int opt = connect_dir(dir, dirname, newdir);
+    int opt = connect_dir(clients[client_fd].dir, dirname, newdir);
 
     if (opt == -1) {
         // 路径过长
@@ -487,7 +539,7 @@ int rnfr(char *arg, int client_fd){
     char * filename = arg + 5;
     char newdir[MAX_BUF];
 
-    int opt = connect_dir(dir, filename, newdir);
+    int opt = connect_dir(clients[client_fd].dir, filename, newdir);
 
     if (opt == -1) {
         // 路径过长
@@ -513,7 +565,7 @@ int rnto(char *arg, int client_fd){
     char * filename = arg + 5;
     char newdir[MAX_BUF];
 
-    int opt = connect_dir(dir, filename, newdir);
+    int opt = connect_dir(clients[client_fd].dir, filename, newdir);
 
     if (opt == -1) {
         // 路径过长

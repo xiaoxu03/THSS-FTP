@@ -25,6 +25,7 @@ typedef struct Client
     int bytes_type;                 // 客户端的传输字节类型
     int transfer_mode;              // 客户端的数据连接模式
     struct sockaddr_in data_addr;   // 客户端的数据连接地址
+    char dir[MAX_BUF];              // 客户端的当前工作目录
 } Client;
 
 

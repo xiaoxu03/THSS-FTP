@@ -21,6 +21,5 @@
 
 int control_init(in_port_t _port);
 
-void* stand_by(void* _listenfd);
 
 #endif

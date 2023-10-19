@@ -80,6 +80,7 @@ int control_init(in_port_t _port){
 				}
 
 				clients[connfd].status = CONNECTED;
+				strcpy(clients[connfd].dir, dir);
 				FD_SET(connfd, &client_fds);
 				if (connfd > max_fd) {
 					max_fd = connfd;
