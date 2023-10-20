@@ -184,9 +184,7 @@ int retr(char *arg, int client_fd){
     // 接收到RETR指令后，解析出要下载的文件路径
     char filedir[MAX_BUF];
 
-    strcpy(filedir, clients[client_fd].dir);
-    if(clients[client_fd].dir[strlen(clients[client_fd].dir) - 1] != '/')
-        strcat(filedir, "/");
+    strcpy(filedir, dir);
     strcat(filedir, filename);
 
     // 打开要下载的文件
@@ -440,7 +438,7 @@ int list(char *arg, int client_fd){
             perror("Error creating data socket");
             return -1;
         }
-
+        printf("%d\n", ntohs(clients[client_fd].data_addr.sin_port));
         // 连接到客户端指定的IP地址和端口号
         if (connect(data_fd, (struct sockaddr*)&clients[client_fd].data_addr, sizeof(clients[client_fd].data_addr)) == -1) {
             perror("Error connecting to client");
@@ -488,7 +486,6 @@ int list(char *arg, int client_fd){
         strcat(file_info, " ");
         strcat(file_info, ptr->d_name);
         strcat(file_info, "\r\n");
-
         send_msg(file_info, clients[client_fd].data_fd, -1);
     }
 
