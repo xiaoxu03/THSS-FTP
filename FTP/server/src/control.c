@@ -183,12 +183,13 @@ int retr(char *arg, int client_fd){
 
     // 接收到RETR指令后，解析出要下载的文件路径
     char filedir[MAX_BUF];
+    char realdir[MAX_BUF];
 
-    strcpy(filedir, dir);
-    strcat(filedir, filename);
+    connect_dir(clients[client_fd].dir, filename, filedir);
+    real_dir(filedir, realdir);
 
     // 打开要下载的文件
-    file = fopen(filedir, "rb");
+    file = fopen(realdir, "rb");
     if (file == NULL) {
         perror("Error opening file");
         return -2;
@@ -270,14 +271,13 @@ int stor(char *arg, int client_fd){
 
     // 接收到RETR指令后，解析出要下载的文件路径
     char filedir[MAX_BUF];
+    char realdir[MAX_BUF];
 
-    strcpy(filedir, clients[client_fd].dir);
-    if(clients[client_fd].dir[strlen(clients[client_fd].dir) - 1] != '/')
-        strcat(filedir, "/");
-    strcat(filedir, filename);
+    connect_dir(clients[client_fd].dir, filename, filedir);
+    real_dir(filedir, realdir);
 
     // 创建要上传的文件
-    file = fopen(filedir, "w+");
+    file = fopen(realdir, "w+");
     if (file == NULL) {
         perror("Error opening file");
         return -2;
@@ -322,7 +322,6 @@ int quit(char *arg, int client_fd){
     if(strlen(arg) > 4){
         return -1;
     }
-
     return 0;
 }
 
@@ -336,8 +335,10 @@ int cwd(char *arg, int client_fd){
     struct dirent *ptr;
 
     char newdir[MAX_BUF];
+    char realdir[MAX_BUF];
 
     int opt = connect_dir(clients[client_fd].dir, dirname, newdir);
+    real_dir(newdir, realdir);
 
     if (opt == -1) {
         // 路径过长
@@ -345,7 +346,7 @@ int cwd(char *arg, int client_fd){
     }
 
     
-    if((opened_dir = opendir(newdir)) == NULL){
+    if((opened_dir = opendir(realdir)) == NULL){
         // 路径不存在
         return -2;
     }
@@ -365,20 +366,25 @@ int mkd(char *arg, int client_fd){
 
     char * dirname = arg + 4;
     char newdir[MAX_BUF];
+    char realdir[MAX_BUF];
 
-    int opt = connect_dir(clients[client_fd].dir, dirname, newdir);
-
-    if (opt == -1) {
-        // 路径过长
-        return -1;
+    if (dirname[0] == '/')
+    {
+        real_dir(dirname, realdir);
+    }
+    else
+    {
+        connect_dir(clients[client_fd].dir, dirname, newdir);
+        real_dir(newdir, realdir);
     }
 
-    // 创建新目录
-    if (mkdir(newdir, 0777) == -1) {
+    printf("make dir: %s\n", realdir);
+
+    // 创建目录
+    if (mkdir(realdir, 0777) == -1) {
         // 创建目录失败
         return -2;
     }
-
     return 0;
 }
 
@@ -391,7 +397,9 @@ int list(char *arg, int client_fd){
     // 遍历目录
     struct dirent *ptr;
     DIR *opened_dir;
-    if((opened_dir = opendir(clients[client_fd].dir)) == NULL){
+    char realdir[MAX_BUF];
+    real_dir(clients[client_fd].dir, realdir);
+    if((opened_dir = opendir(realdir)) == NULL){
         // 路径不存在
         return -1;
     }
@@ -402,10 +410,10 @@ int list(char *arg, int client_fd){
         }
 
         // 获取文件信息
-        char file_dir[256];
+        char file_dir[1024];
         file_dir[0] = '\0';
-        strcat(file_dir, clients[client_fd].dir);
-        if (clients[client_fd].dir[strlen(clients[client_fd].dir) - 1] != '/') {
+        strcat(file_dir, realdir);
+        if (realdir[strlen(realdir) - 1] != '/') {
             strcat(file_dir, "/");
         }
         strcat(file_dir, ptr->d_name);
@@ -425,11 +433,11 @@ int list(char *arg, int client_fd){
     closedir(opened_dir);
 
     // 打开当前目录
-    if((opened_dir = opendir(clients[client_fd].dir)) == NULL){
+    if((opened_dir = opendir(realdir)) == NULL){
         // 路径不存在
         return -1;
     }
-
+    printf("real dir: %s\n", realdir);
     // 使用数据连接向客户端发送文件数据
     if(clients[client_fd].transfer_mode == PORT_MODE){
         // 创建数据传输的套接字
@@ -438,7 +446,6 @@ int list(char *arg, int client_fd){
             perror("Error creating data socket");
             return -1;
         }
-        printf("%d\n", ntohs(clients[client_fd].data_addr.sin_port));
         // 连接到客户端指定的IP地址和端口号
         if (connect(data_fd, (struct sockaddr*)&clients[client_fd].data_addr, sizeof(clients[client_fd].data_addr)) == -1) {
             perror("Error connecting to client");
@@ -472,10 +479,7 @@ int list(char *arg, int client_fd){
         char file_info[256];
         char file_dir[256];
         file_dir[0] = '\0';
-        strcat(file_dir, clients[client_fd].dir);
-        if (clients[client_fd].dir[strlen(clients[client_fd].dir) - 1] != '/') {
-            strcat(file_dir, "/");
-        }
+        strcat(file_dir, realdir);
         strcat(file_dir, ptr->d_name);
         
     
@@ -535,8 +539,10 @@ int rnfr(char *arg, int client_fd){
 
     char * filename = arg + 5;
     char newdir[MAX_BUF];
+    char realdir[MAX_BUF];
 
     int opt = connect_dir(clients[client_fd].dir, filename, newdir);
+    real_dir(newdir, realdir);
 
     if (opt == -1) {
         // 路径过长
@@ -544,12 +550,12 @@ int rnfr(char *arg, int client_fd){
     }
 
     // 检查文件是否存在
-    if (access(newdir, F_OK) == -1) {
+    if (access(realdir, F_OK) == -1) {
         // 文件不存在
         return -2;
     }
 
-    strcpy(out_buf, newdir);
+    strcpy(clients[client_fd].rndir, realdir);
 
     return 0;
 }
@@ -561,8 +567,10 @@ int rnto(char *arg, int client_fd){
 
     char * filename = arg + 5;
     char newdir[MAX_BUF];
+    char realdir[MAX_BUF];
 
     int opt = connect_dir(clients[client_fd].dir, filename, newdir);
+    real_dir(newdir, realdir);
 
     if (opt == -1) {
         // 路径过长
@@ -570,7 +578,7 @@ int rnto(char *arg, int client_fd){
     }
 
     // 重命名文件
-    if (rename(out_buf, newdir) == -1) {
+    if (rename(clients[client_fd].rndir, realdir) == -1) {
         // 重命名失败
         return -2;
     }

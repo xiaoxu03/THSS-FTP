@@ -26,6 +26,7 @@ typedef struct Client
     int transfer_mode;              // 客户端的数据连接模式
     struct sockaddr_in data_addr;   // 客户端的数据连接地址
     char dir[MAX_BUF];              // 客户端的当前工作目录
+    char rndir[MAX_BUF];            // 客户端的重命名目录
 } Client;
 
 

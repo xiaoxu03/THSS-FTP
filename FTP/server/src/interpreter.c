@@ -278,14 +278,21 @@ int interpret(int client_fd){
                 break;
             case MKD:
                 output = mkd(in_buf, client_fd);
-                if (output == -1 || output == -2)
+                if (output == -1)
                 {
                     strcpy(msg, "504 Invalid input!\r\n");
                     send_msg(msg, client_fd, strlen(msg));
                 }
+                else if (output == -2)
+                {
+                    strcpy(msg, "502 Server error!\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
                 else
                 {
-                    strcpy(msg, "250 Make directory successfully.\r\n");
+                    strcpy(msg, "257 ");
+                    strcat(msg, in_buf + 4);
+                    strcat(msg, " created.\r\n");
                     send_msg(msg, client_fd, strlen(msg));
                 }
                 break;

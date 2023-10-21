@@ -98,6 +98,17 @@ int connect_dir(char *_father, char *_son, char *_dest){
     return 0;
 }
 
+int real_dir(char *_path, char *_dest){
+    char temp[MAX_BUF];
+    strcpy(temp, dir);
+    if( temp[strlen(temp) - 1] != '/'){
+        strcat(temp, "/");
+    }
+    strcat(temp, _path);
+    strcpy(_dest, temp);
+    return 0;
+}
+
 // 根据 uid 获取用户名
 char* get_username(uid_t uid) {
     struct passwd* pwd = getpwuid(uid);
@@ -143,11 +154,9 @@ char* format_file_info(char* buffer, const char* filename, int max_size_len) {
     strftime(time_str, 32, "%b %d %H:%M", time_info);
     char table[128];
     memset(table, ' ', 128);
-    printf("%d\n", max_size_len - (int)strlen(size));
     table[max_size_len - (int)strlen(size)] = '\0';
     strcat(table, size);
     // 将文件信息格式化为字符串
     snprintf(buffer, 256, "%s %d %s %s %s %s", mode, type, owner, owner, table, time_str);
-    printf("%s\n", buffer);
     return buffer;
 }
