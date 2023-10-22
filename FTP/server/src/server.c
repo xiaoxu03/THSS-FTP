@@ -27,7 +27,7 @@ int main(int argc, char** argv){
     }
 
     for(int i = 1;i < argc;i++){
-        if(!strcmp(argv[i], "-dir")){
+        if(!strcmp(argv[i], "-root")){
             if(i + 1 < argc){
                 strcpy(dir, argv[i + 1]);
                 i++;
@@ -37,13 +37,11 @@ int main(int argc, char** argv){
     }
 
     if(!hp) {
-        printf("Please input port with \"-port\" argument!\n");
-        return -1;
+        port = 21;
     }
 
     if(!hd) {
-        printf("Please input port with \"-dir\" argument!\n");
-        return -1;
+        strcpy(dir, "/tmp");
     }
 
     if(control_init(port)){

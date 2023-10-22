@@ -91,7 +91,7 @@ int interpret(int client_fd){
         break;
     case CONNECTED:
         switch (cmd)
-        {
+        { 
         case USER:
         output = user(in_buf, client_fd);
             if(output == -2){
