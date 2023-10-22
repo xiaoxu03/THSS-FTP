@@ -34,4 +34,6 @@ char* format_file_info(char* buffer, const char* filename, int max_size_len);
 
 int real_dir(char *_path, char *_dest);
 
+int is_root(char *_path);
+
 #endif

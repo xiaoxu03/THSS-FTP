@@ -118,9 +118,20 @@ char* format_file_info(char* buffer, const char* filename, int max_size_len) {
     strftime(time_str, 32, "%b %d %H:%M", time_info);
     char table[128];
     memset(table, ' ', 128);
+    printf("%d\n", max_size_len - (int)strlen(size));
     table[max_size_len - (int)strlen(size)] = '\0';
     strcat(table, size);
+    printf("!!!!!!!!!!!!!!!!!\n");
     // 将文件信息格式化为字符串
-    snprintf(buffer, 256, "%s %d %s %s %s %s", mode, type, owner, owner, table, time_str);
+    snprintf(buffer, MAX_BUF, "%s %d %s %s %s %s", mode, type, owner, owner, table, time_str);
     return buffer;
+}
+
+int is_root(char *_path){
+    for(int i = 0;i < strlen(_path);i++){
+        if(_path[i] != '/'){
+            return 0;
+        }
+    }
+    return 1;
 }

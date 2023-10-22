@@ -21,10 +21,6 @@ def build():
     stderr = proc.stderr.readline()
     if not (stdout and stderr):
       break
-    if stdout and '-Wall' not in stdout:
-      print('No -Wall argument')
-      print('Your credit is 0')
-      exit(0)
     if stderr and credit == 40:
       print('There are warnings when compiling your program')
       credit -= major

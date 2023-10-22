@@ -75,6 +75,9 @@ int port(char *arg, int client_fd){
             return -1;
         }
 
+    printf("ip: %s\n", ipAddress);
+    printf("port: %d\n", _port);
+
     // 设置数据传输套接字的地址信息
     memset(&clients[client_fd].data_addr, 0, sizeof(data_addr));
     clients[client_fd].data_addr.sin_family = AF_INET;
@@ -197,7 +200,6 @@ int retr(char *arg, int client_fd){
     real_dir(filedir, realdir);
 
     // 打开要下载的文件
-    printf("%s\n", realdir);
     file = fopen(realdir, "rb");
     if (file == NULL) {
         perror("Error opening file");
@@ -215,7 +217,7 @@ int retr(char *arg, int client_fd){
     fseek(file, 0, SEEK_END);
 
     char message[MAX_BUF];
-    char size[1024];
+    char size[20];
     sprintf(size, "%ld", ftell(file));
     rewind(file);
     sprintf(message, "150 Opening %s mode data connection for %s(%s bytes).\r\n", mode, filename, size);
@@ -303,7 +305,7 @@ int stor(char *arg, int client_fd){
     fseek(file, 0, SEEK_END);
 
     char message[MAX_BUF];
-    char size[1024];
+    char size[MAX_BUF];
     sprintf(size, "%ld", ftell(file));
     sprintf(message, "150 Opening %s mode data connection for %s.\r\n", mode, filename);
     send_msg(message, client_fd, -1);
@@ -412,12 +414,14 @@ int list(char *arg, int client_fd){
     }
     while(ptr = readdir(opened_dir)){
         // 忽略 . 和 ..
-        if(strcmp(ptr->d_name, ".") == 0 || strcmp(ptr->d_name, "..") == 0 ){
+        if(strcmp(ptr->d_name, ".") == 0){
             continue;
         }
-
+        if(strcmp(ptr->d_name, "..") == 0 && is_root(clients[client_fd].dir)){
+            continue;
+        }
         // 获取文件信息
-        char file_dir[1024];
+        char file_dir[MAX_BUF];
         file_dir[0] = '\0';
         strcat(file_dir, realdir);
         if (realdir[strlen(realdir) - 1] != '/') {
@@ -435,7 +439,7 @@ int list(char *arg, int client_fd){
             max_size_len = file_size;
         }
     }
-    char size[1024];
+    char size[MAX_BUF];
     max_size_len = snprintf(size, sizeof(size), "%d", max_size_len);
     closedir(opened_dir);
 
@@ -480,25 +484,25 @@ int list(char *arg, int client_fd){
         if(strcmp(ptr->d_name, ".") == 0){
             continue;
         }
-        if(strcmp(ptr->d_name, "..") == 0 && strcmp(clients[client_fd].dir, "/") == 0){
+        if(strcmp(ptr->d_name, "..") == 0 && is_root(clients[client_fd].dir)){
             continue;
         }
+        printf("%s\n", clients[client_fd].dir);
         printf("%s\n", ptr->d_name);
         // 获取文件信息
-        char file_info[256];
-        char file_dir[256];
+        char file_info[MAX_BUF];
+        char file_dir[MAX_BUF];
         file_dir[0] = '\0';
         strcat(file_dir, realdir);
         if (realdir[strlen(realdir) - 1] != '/') {
             strcat(file_dir, "/");
         }
         strcat(file_dir, ptr->d_name);
-        
-    
         if (!format_file_info(file_info, file_dir, max_size_len)) {
             printf("Load failed!\n");
             continue;
         }
+        printf("%s\n", file_dir);
         strcat(file_info, " ");
         strcat(file_info, ptr->d_name);
         strcat(file_info, "\r\n");
