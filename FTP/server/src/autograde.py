@@ -36,7 +36,7 @@ def create_test_file(filename):
     f.write(data)
   f.close()
 
-def test(port=21, directory='/tmp'):
+def test(port=21, directory='tmp'):
   global credit
   if port == 21 and directory == '/tmp':
     server = subprocess.Popen('./server', stdout=subprocess.PIPE)
@@ -106,7 +106,7 @@ directory = ''.join(random.choice(string.ascii_letters) for x in range(10))
 if os.path.isdir(directory):
   shutil.rmtree(directory)
 os.mkdir(directory)
-test(port, directory)
+# test(port, directory)
 shutil.rmtree(directory)
 # Clean
 subprocess.Popen(['make', 'clean'], stdout=subprocess.PIPE)

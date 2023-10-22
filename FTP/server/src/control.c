@@ -3,9 +3,13 @@
 
 int user(char *arg, int client_fd)
 {
+    if (strlen(arg) < 6)
+    {
+        return -1;
+    }
     if (strcmp(arg + 5, "anonymous"))
     {
-        return 1;
+        return -2;
     }
     clients[client_fd].status = PASSWORD;
     return 0;
@@ -13,17 +17,21 @@ int user(char *arg, int client_fd)
 
 int pass(char *arg, int client_fd)
 {
+    if (strlen(arg) < 6)
+    {
+        return -1;
+    }
     char* str = arg + 5;
 
     int len = strlen(str);
 
-    // 找到 '@' 和 '.'
+    // 找到 '@'
     for (int i = 0; i < len; i++) {
         if (str[i] == '@' && i != 0) {
             break;
         }
         if (i == len - 1) {
-            return 1;
+            return -2;
         }
     }
 

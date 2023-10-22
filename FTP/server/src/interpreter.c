@@ -93,12 +93,13 @@ int interpret(int client_fd){
         switch (cmd)
         {
         case USER:
-            if(strlen(in_buf) < 5){
-                strcpy(msg, "501 Please input like \"USER anonymous\"!\r\n");
+        output = user(in_buf, client_fd);
+            if(output == -2){
+                strcpy(msg, "504 Username not found!\r\n");
                 send_msg(msg, client_fd, strlen(msg));
             }
-            if(user(in_buf, client_fd)){
-                strcpy(msg, "504 Username not found!\r\n");
+            else if(output == -1){
+                strcpy(msg, "504 Invalid input!\r\n");
                 send_msg(msg, client_fd, strlen(msg));
             }
             else{
@@ -120,12 +121,13 @@ int interpret(int client_fd){
         switch (cmd)
         {
         case PASS:
-            if(strlen(in_buf) < 5){
-                strcpy(msg, "501 Please input like \"PASS thu@beijing.cn\"!\r\n");
+            output = pass(in_buf, client_fd);
+            if(output == -2){
+                strcpy(msg, "504 Password not a email address!\r\n");
                 send_msg(msg, client_fd, strlen(msg));
             }
-            if(pass(in_buf, client_fd)){
-                strcpy(msg, "504 Password not a email address!\r\n");
+            else if(output == -1){
+                strcpy(msg, "504 Invalid input!\r\n");
                 send_msg(msg, client_fd, strlen(msg));
             }
             else{
@@ -147,7 +149,7 @@ int interpret(int client_fd){
         switch(cmd){
             case SYST:
                 if(strlen(in_buf) > 4){
-                    strcpy(msg, "No argument needed for \"SYST\"!\r\n");
+                    strcpy(msg, "504 No argument needed for \"SYST\"!\r\n");
                     send_msg(msg, client_fd, strlen(msg));
                 }
                 else{
@@ -300,6 +302,60 @@ int interpret(int client_fd){
                 output = list(in_buf, client_fd);
                 if (output == -1){
                     strcpy(msg, "550 Directory not found!\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                break;
+            case RMD:
+                output = rmd(in_buf, client_fd);
+                if (output == -1)
+                {
+                    strcpy(msg, "504 Invalid input!\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                else if (output == -2)
+                {
+                    strcpy(msg, "502 Server error!\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                else
+                {
+                    strcpy(msg, "250 Directory successfully removed.\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                break;
+            case RNFR:
+                output = rnfr(in_buf, client_fd);
+                if (output == -1)
+                {
+                    strcpy(msg, "504 Invalid input!\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                else if (output == -2)
+                {
+                    strcpy(msg, "502 Server error!\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                else
+                {
+                    strcpy(msg, "350 Ready for RNTO.\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                break;
+            case RNTO:
+                output = rnto(in_buf, client_fd);
+                if (output == -1)
+                {
+                    strcpy(msg, "504 Invalid input!\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                else if (output == -2)
+                {
+                    strcpy(msg, "502 Server error!\r\n");
+                    send_msg(msg, client_fd, strlen(msg));
+                }
+                else
+                {
+                    strcpy(msg, "250 File successfully renamed.\r\n");
                     send_msg(msg, client_fd, strlen(msg));
                 }
                 break;
