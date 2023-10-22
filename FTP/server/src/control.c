@@ -197,6 +197,7 @@ int retr(char *arg, int client_fd){
     real_dir(filedir, realdir);
 
     // 打开要下载的文件
+    printf("%s\n", realdir);
     file = fopen(realdir, "rb");
     if (file == NULL) {
         perror("Error opening file");
@@ -386,8 +387,6 @@ int mkd(char *arg, int client_fd){
         real_dir(newdir, realdir);
     }
 
-    printf("make dir: %s\n", realdir);
-
     // 创建目录
     if (mkdir(realdir, 0777) == -1) {
         // 创建目录失败
@@ -445,7 +444,6 @@ int list(char *arg, int client_fd){
         // 路径不存在
         return -1;
     }
-    printf("real dir: %s\n", realdir);
     // 使用数据连接向客户端发送文件数据
     if(clients[client_fd].transfer_mode == PORT_MODE){
         // 创建数据传输的套接字
@@ -479,15 +477,21 @@ int list(char *arg, int client_fd){
     // 遍历目录
     while((ptr = readdir(opened_dir)) != NULL){
         // 忽略 . 和 ..
-        if(strcmp(ptr->d_name, ".") == 0 || strcmp(ptr->d_name, "..") == 0 ){
+        if(strcmp(ptr->d_name, ".") == 0){
             continue;
         }
-    
+        if(strcmp(ptr->d_name, "..") == 0 && strcmp(clients[client_fd].dir, "/") == 0){
+            continue;
+        }
+        printf("%s\n", ptr->d_name);
         // 获取文件信息
         char file_info[256];
         char file_dir[256];
         file_dir[0] = '\0';
         strcat(file_dir, realdir);
+        if (realdir[strlen(realdir) - 1] != '/') {
+            strcat(file_dir, "/");
+        }
         strcat(file_dir, ptr->d_name);
         
     
@@ -523,8 +527,10 @@ int rmd(char *arg, int client_fd){
 
     char * dirname = arg + 4;
     char newdir[MAX_BUF];
+    char realdir[MAX_BUF];
 
     int opt = connect_dir(clients[client_fd].dir, dirname, newdir);
+    real_dir(newdir, realdir);
 
     if (opt == -1) {
         // 路径过长
@@ -532,7 +538,7 @@ int rmd(char *arg, int client_fd){
     }
 
     // 删除目录
-    if (rmdir(newdir) == -1) {
+    if (rmdir(realdir) == -1) {
         // 删除目录失败
         return -2;
     }

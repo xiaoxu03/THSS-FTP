@@ -26,11 +26,6 @@ int connect_dir(char *_father, char *_son, char *_dest){
     if (_son[0] == '/') {
         strcpy(_dest, _son);
     }
-    // 如果以'/'结尾，就直接返回父路径
-    else if (_father[strlen(_father) - 1] == '/') {
-        strcpy(_dest, _father);
-        strcat(_dest, _son);
-    }
     // 否则就返回父路径+子路径
     else {
         strcpy(_dest, _father);
@@ -38,62 +33,31 @@ int connect_dir(char *_father, char *_son, char *_dest){
         strcat(_dest, _son);
     }
 
-    //处理一下，消去_dest路径中的".."和".", 以及"//", 得到最终的路径
-    int len = strlen(_dest);
-    int i = 0;
-
-    while (i < len)
-    {
-        // 如果有"//", 就消去
-        if(_dest[i] == '/' && _dest[i + 1] == '/'){
-            int j = i + 1;
-            while (j < len) {
-                _dest[j] = _dest[j + 1];
-                j++;
+    // 处理路径中的特殊情况
+    char *p = _dest;
+    while (*p != '\0') {
+        if (strncmp(p, "//", 2) == 0) {
+            memmove(p, p + 1, strlen(p + 1) + 1);
+        } else if (strncmp(p, "/./", 3) == 0 || strncmp(p, "/.\0", 3) == 0) {
+            memmove(p, p + 2, strlen(p + 2) + 1);
+        } else if (strncmp(p, "/../", 4) == 0 || strncmp(p, "/..\0", 4) == 0) {
+            // 如果新目录在根目录之上，就返回-1
+            if (p == _dest || strncmp(p - 1, "/", 1) == 0) {
+                return -1;
             }
-            len--;
-        }
-        // 如果有"/./", 就消去
-        else if(_dest[i] == '/' && _dest[i + 1] == '.' && _dest[i + 2] == '/'){
-            int j = i + 1;
-            while (j < len) {
-                _dest[j] = _dest[j + 2];
-                j++;
+            // 否则，找到前一个'/'的位置
+            *p = '\0';
+            char *prev_slash = strrchr(_dest, '/');
+            if (prev_slash == NULL) {
+                return -1;
             }
-            len -= 2;
-        }
-        // 如果有"/../", 就消去
-        else if(_dest[i] == '/' && _dest[i + 1] == '.' && _dest[i + 2] == '.' && _dest[i + 3] == '/'){
-            int j = i + 1;
-            while (j < len) {
-                _dest[j] = _dest[j + 3];
-                j++;
-            }
-            len -= 3;
-            // 如果消去后，_dest[i]前面有'/', 就把这个'/'也消去
-            if(i > 0 && _dest[i - 1] == '/'){
-                j = i - 1;
-                while (j < len) {
-                    _dest[j] = _dest[j + 1];
-                    j++;
-                }
-                len--;
-            }
-            // 如果消去后，_dest[i]前面没有'/', 就把这个'/'也消去
-            else if(i == 0){
-                j = i;
-                while (j < len) {
-                    _dest[j] = _dest[j + 1];
-                    j++;
-                }
-                len--;
-            }
-        }
-        else{
-            i++;
+            // 移除前一个'/'和'/'之间的内容
+            memmove(prev_slash + 1, p + 3, strlen(p + 3) + 1);
+            p = prev_slash;
+        } else {
+            p++;
         }
     }
-    
 
     return 0;
 }

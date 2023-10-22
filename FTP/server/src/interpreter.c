@@ -270,10 +270,8 @@ int interpret(int client_fd){
                 else
                 {
                     strcpy(msg, "257 \"");
-                    strcat(msg, dir);
-                    // 如果不是以'/'结尾的话，加上'/'
-                    if (dir[strlen(dir) - 1] != '/')
-                        strcat(msg, "/");
+                    char realdir[MAX_BUF];
+                    strcat(msg, clients[client_fd].dir);
                     strcat(msg, "\"\r\n");
                     send_msg(msg, client_fd, strlen(msg));
                 }
