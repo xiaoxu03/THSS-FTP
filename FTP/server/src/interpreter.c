@@ -84,7 +84,12 @@ int interpret(int client_fd){
     char *command = strtok(in_cpy, " ");
     int cmd = interpret_comand(command);
     char msg[MAX_BUF];
-    switch (clients[client_fd].status)
+
+    pthread_mutex_lock(&mutex);
+    int status = clients[client_fd].status;
+    pthread_mutex_unlock(&mutex);
+
+    switch (status)
     {
     case DISCONNECTED:
         printf("There is something wrong with server!\n");
@@ -216,10 +221,6 @@ int interpret(int client_fd){
                     strcpy(msg, "425 Unable to Connect!\r\n");
                     send_msg(msg, client_fd, strlen(msg));
                 }
-                else{
-                    strcpy(msg, "226 Sending Data Success\r\n");
-                    send_msg(msg, client_fd, strlen(msg));
-                }
                 break;
             case STOR:
                 output = stor(in_buf, client_fd);
@@ -233,10 +234,6 @@ int interpret(int client_fd){
                 }
                 else if(output == -3){
                     strcpy(msg, "425 Unable to Connect!\r\n");
-                    send_msg(msg, client_fd, strlen(msg));
-                }
-                else{
-                    strcpy(msg, "226 Transfer complete.\r\n");
                     send_msg(msg, client_fd, strlen(msg));
                 }
                 break;
@@ -362,6 +359,8 @@ int interpret(int client_fd){
                 send_msg(msg, client_fd, strlen(msg));
                 break;
         }
+        break;
+    case TRANSFER:
         break;
     default:
         break;

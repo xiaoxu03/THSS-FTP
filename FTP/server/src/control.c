@@ -223,18 +223,15 @@ int retr(char *arg, int client_fd){
     sprintf(message, "150 Opening %s mode data connection for %s(%s bytes).\r\n", mode, filename, size);
     send_msg(message, client_fd, -1);
 
-    // 使用数据连接向客户端发送文件数据
-    while ((bytes_read = fread(buffer, 1, MAX_BUF, file)) > 0) {
-        if (send(clients[client_fd].data_fd, buffer, bytes_read, 0) == -1) {
-            perror("Error sending file data");
-            return -2;
-        }
-    }
+    TransTask *new_task = (TransTask *)malloc(sizeof(TransTask));
+    new_task->client_fd = client_fd;
+    new_task->file = file;
 
-    fclose(file);
-    close(clients[client_fd].data_fd);
-    clients[client_fd].data_fd = 0;
-    clients[client_fd].transfer_mode = NONE_MODE;
+    pthread_t tid;
+    if(pthread_create(&tid, NULL, send_file, (void *)new_task)){
+        perror("Error creating thread");
+        return -3;
+    }
 
     return 0;
 }
@@ -311,20 +308,15 @@ int stor(char *arg, int client_fd){
     send_msg(message, client_fd, -1);
 
 
-    int recv_flag;
-    // 使用数据连接向客户端发送文件数据
-    while((recv_flag = recv(clients[client_fd].data_fd, buffer, MAX_BUF, 0)) > 0){
-        int bytes_write = fwrite(buffer, sizeof(char), recv_flag, file);
-    }
+    TransTask *new_task = (TransTask *)malloc(sizeof(TransTask));
+    new_task->client_fd = client_fd;
+    new_task->file = file;
 
-    if(recv_flag == -1){
+    pthread_t tid;
+    if(pthread_create(&tid, NULL, recv_file, (void *)new_task)){
+        perror("Error creating thread");
         return -3;
     }
-
-    fclose(file);
-    close(clients[client_fd].data_fd);
-    clients[client_fd].data_fd = 0;
-    clients[client_fd].transfer_mode = NONE_MODE;
 
     return 0;
 }

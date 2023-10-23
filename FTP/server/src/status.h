@@ -7,6 +7,7 @@
 #define CONNECTED           1
 #define PASSWORD            2
 #define AVAILAVLE           3
+#define TRANSFER            4
 
 // Marcos for client types
 #define ASCII               0

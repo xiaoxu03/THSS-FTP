@@ -118,10 +118,8 @@ char* format_file_info(char* buffer, const char* filename, int max_size_len) {
     strftime(time_str, 32, "%b %d %H:%M", time_info);
     char table[128];
     memset(table, ' ', 128);
-    printf("%d\n", max_size_len - (int)strlen(size));
     table[max_size_len - (int)strlen(size)] = '\0';
     strcat(table, size);
-    printf("!!!!!!!!!!!!!!!!!\n");
     // 将文件信息格式化为字符串
     snprintf(buffer, MAX_BUF, "%s %d %s %s %s %s", mode, type, owner, owner, table, time_str);
     return buffer;
@@ -134,4 +132,85 @@ int is_root(char *_path){
         }
     }
     return 1;
+}
+
+void *send_file(void *send_task){
+    TransTask *task = (TransTask *)send_task;
+    int client_fd = task->client_fd;
+    FILE* file = task->file;
+    
+    pthread_mutex_lock(&mutex);
+    clients[client_fd].status = TRANSFER;
+    pthread_mutex_unlock(&mutex);
+
+    char buffer[MAX_BUF];
+    while(!feof(file)){
+        int len = fread(buffer, 1, MAX_BUF, file);
+        if(len < 0){
+            printf("Error fread(): %s(%d)\n", strerror(errno), errno);
+            return NULL;
+        }
+        if(send_msg(buffer, clients[client_fd].data_fd, len) < 0){
+            printf("Error send_msg(): %s(%d)\n", strerror(errno), errno);
+            return NULL;
+        }
+    }
+
+    char msg[] = "226 Transfer complete.\r\n";
+    send_msg(msg, client_fd, AUTO);
+
+    pthread_mutex_lock(&mutex);
+    clients[client_fd].status = AVAILAVLE;
+    clients[client_fd].transfer_mode = NONE_MODE;
+    pthread_mutex_unlock(&mutex);
+
+    fclose(file);
+    close(clients[client_fd].data_fd);
+    clients[client_fd].data_fd = 0;
+
+    free(task);
+
+    return NULL;
+}
+
+void *recv_file(void *recv_task){
+    TransTask *task = (TransTask *)recv_task;
+    int client_fd = task->client_fd;
+    FILE* file = task->file;
+
+    pthread_mutex_lock(&mutex);
+    clients[client_fd].status = TRANSFER;
+    pthread_mutex_unlock(&mutex);
+
+    char buffer[MAX_BUF];
+    while(1){
+        int len = read(clients[client_fd].data_fd, buffer, MAX_BUF);
+        if(len < 0){
+            printf("Error read(): %s(%d)\n", strerror(errno), errno);
+            return NULL;
+        }
+        if(len == 0){
+            break;
+        }
+        if(fwrite(buffer, 1, len, file) < 0){
+            printf("Error fwrite(): %s(%d)\n", strerror(errno), errno);
+            return NULL;
+        }
+    }
+
+    char msg[] = "226 Transfer complete.\r\n";
+    send_msg(msg, client_fd, AUTO);
+
+    pthread_mutex_lock(&mutex);
+    clients[client_fd].status = AVAILAVLE;
+    clients[client_fd].transfer_mode = NONE_MODE;
+    pthread_mutex_unlock(&mutex);
+
+    fclose(file);
+    close(clients[client_fd].data_fd);
+    clients[client_fd].data_fd = 0;
+
+    free(task);
+
+    return NULL;
 }

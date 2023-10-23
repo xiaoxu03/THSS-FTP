@@ -136,10 +136,6 @@ int control_init(in_port_t _port){
 					interpret(eventfd);
 				}
 			}
-			// 文件传输请求
-			else{
-				//TODO: 文件传输线程监听
-			}
 		}
 	}
     return 0;

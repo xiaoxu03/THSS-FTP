@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <pthread.h>
-
+#include <stdio.h>
 
 
 #define MAX_BUF             8192
@@ -29,8 +29,14 @@ typedef struct Client
     char rndir[MAX_BUF];            // 客户端的重命名目录
 } Client;
 
+typedef struct TransTask
+{
+    int client_fd;                  // 客户端的文件描述符
+    FILE* file;                     // 客户端的文件指针
+} TransTask;
 
 
+// 用于记录客户端的文件描述符集合
 extern fd_set client_fds;
 
 // 最大的文件描述符
@@ -50,6 +56,9 @@ extern char out_buf[MAX_BUF];
 
 // 客户端数组
 extern Client clients[MAX_CLIENT];
+
+// 用于互斥访问客户端数组的互斥锁
+extern pthread_mutex_t mutex;
 
 
 
