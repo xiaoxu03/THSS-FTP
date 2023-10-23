@@ -10,8 +10,8 @@
 #define TRANSFER            4
 
 // Marcos for client types
-#define ASCII               0
-#define BINARY              1
+#define BINARY              0
+#define ASCII               1
 
 // PASV/PORT宏定义
 #define NONE_MODE           0

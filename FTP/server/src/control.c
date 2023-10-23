@@ -75,9 +75,6 @@ int port(char *arg, int client_fd){
             return -1;
         }
 
-    printf("ip: %s\n", ipAddress);
-    printf("port: %d\n", _port);
-
     // 设置数据传输套接字的地址信息
     memset(&clients[client_fd].data_addr, 0, sizeof(data_addr));
     clients[client_fd].data_addr.sin_family = AF_INET;
@@ -145,8 +142,6 @@ int pasv(char *arg, int client_fd){
     in_port_t _port = ntohs(data_addr.sin_port);
     snprintf(out_buf, sizeof(out_buf), "227 Entering Passive Mode (%s,%u,%u).\r\n",
         ip_address, _port >> 8, _port & 0xFF);
-
-    printf("%s\n", out_buf);
 
     return 0;
 }
@@ -479,8 +474,6 @@ int list(char *arg, int client_fd){
         if(strcmp(ptr->d_name, "..") == 0 && is_root(clients[client_fd].dir)){
             continue;
         }
-        printf("%s\n", clients[client_fd].dir);
-        printf("%s\n", ptr->d_name);
         // 获取文件信息
         char file_info[MAX_BUF];
         char file_dir[MAX_BUF];
@@ -494,7 +487,6 @@ int list(char *arg, int client_fd){
             printf("Load failed!\n");
             continue;
         }
-        printf("%s\n", file_dir);
         strcat(file_info, " ");
         strcat(file_info, ptr->d_name);
         strcat(file_info, "\r\n");

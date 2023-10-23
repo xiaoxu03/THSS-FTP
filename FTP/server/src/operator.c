@@ -132,7 +132,7 @@ int control_init(in_port_t _port){
 						len += read(eventfd, in_buf + len, MAX_BUF - len);
 					}
 					in_buf[len - 2] = 0;
-					printf("%s\n", in_buf);
+					printf("Client(fd=%d): %s\n", eventfd, in_buf);
 					interpret(eventfd);
 				}
 			}
