@@ -60,6 +60,8 @@ extern Client clients[MAX_CLIENT];
 // 用于互斥访问客户端数组的互斥锁
 extern pthread_mutex_t mutex;
 
+// 服务器的端口号
+extern in_port_t server_port;
 
 
 #endif

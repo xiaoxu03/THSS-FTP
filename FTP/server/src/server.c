@@ -7,17 +7,17 @@
 char dir[MAX_BUF];
 char in_buf[MAX_BUF];
 char out_buf[MAX_BUF];
-
+in_port_t server_port;
 
 int main(int argc, char** argv){
-    in_port_t port;
+    
     int hp = 0;
     int hd = 0;
 
     for(int i = 1;i < argc;i++){
         if(!strcmp(argv[i], "-port")){
             if(i + 1 < argc){
-                port = atoi(argv[i + 1]);
+                server_port = atoi(argv[i + 1]);
                 if(port){
                     i++;
                     hp = 1;
@@ -37,14 +37,14 @@ int main(int argc, char** argv){
     }
 
     if(!hp) {
-        port = 21;
+        server_port = 21;
     }
 
     if(!hd) {
         strcpy(dir, "/tmp");
     }
 
-    if(control_init(port)){
+    if(control_init(server_port)){
         printf("Failed to launch!\n");
         return -1;
     }

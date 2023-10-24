@@ -165,6 +165,23 @@ int retr(char *arg, int client_fd){
             return -1;
         }
 
+        struct sockaddr_in data_addr;
+
+        int opt = 0;
+        setsockopt(data_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof( opt ));
+
+        // 绑定数据传输的套接字到一个可用端口上
+        memset(&data_addr, 0, sizeof(data_addr));
+        data_addr.sin_family = AF_INET;
+        data_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        data_addr.sin_port = htons(server_port - 1);
+
+        printf("Binding port: %d!\n", server_port - 1);
+
+        if (bind(data_fd, (struct sockaddr*)&data_addr, sizeof(data_addr)) == -1) {
+            return -2;
+        }
+
         // 连接到客户端指定的IP地址和端口号
         if (connect(data_fd, (struct sockaddr*)&clients[client_fd].data_addr, sizeof(clients[client_fd].data_addr)) == -1) {
             perror("Error connecting to client");
@@ -248,6 +265,23 @@ int stor(char *arg, int client_fd){
         if (data_fd == -1) {
             perror("Error creating data socket");
             return -1;
+        }
+
+        struct sockaddr_in data_addr;
+
+        int opt = 0;
+        setsockopt(data_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof( opt ));
+
+        // 绑定数据传输的套接字到一个可用端口上
+        memset(&data_addr, 0, sizeof(data_addr));
+        data_addr.sin_family = AF_INET;
+        data_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        data_addr.sin_port = htons(server_port - 1);
+
+        printf("Binding port: %d!\n", server_port - 1);
+
+        if (bind(data_fd, (struct sockaddr*)&data_addr, sizeof(data_addr)) == -1) {
+            return -2;
         }
 
         // 连接到客户端指定的IP地址和端口号
@@ -386,7 +420,14 @@ int mkd(char *arg, int client_fd){
 
 int list(char *arg, int client_fd){
     char message[MAX_BUF];
-    sprintf(message, "150 Opening ASCII mode data connection for file list.\r\n");
+    char mode[10];
+    if (clients[client_fd].bytes_type == ASCII){
+        strcpy(mode, "ASCII");
+    }
+    else{
+        strcpy(mode, "BINARY");
+    }
+    sprintf(message, "150 Opening %s mode data connection for file list.\r\n", mode);
     send_msg(message, client_fd, -1);
 
     int max_size_len = 0;
